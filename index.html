@@ -3,121 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>30s Ad Refresh - Tile Tap</title>
+    <title>W-Ad Tile Tap</title>
     <style>
         body { margin: 0; overflow: hidden; background: #111; font-family: sans-serif; }
-        /* 広告枠 */
-        #ad-wrapper { position: fixed; top: 0; left: 0; width: 100%; height: 70px; background: #333; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        #ad-wrapper p { color: #888; font-size: 8px; margin: 0; }
         
+        /* 【上部】広告エリア */
+        #ad-top { position: fixed; top: 0; left: 0; width: 100%; height: 70px; background: #333; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        /* 【下部】広告エリア */
+        #ad-bottom { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: #333; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        .ad-label { color: #888; font-size: 8px; margin: 0; position: absolute; top: 2px; }
+        
+        /* ゲーム画面（上下の広告70pxずつに被らないように調整） */
         canvas { display: block; margin-top: 70px; background: #222; }
         #ui { position: absolute; top: 80px; left: 0; width: 100%; text-align: center; color: white; font-size: 30px; font-weight: bold; pointer-events: none; }
         
         #startScreen {
-            position: absolute; top: 70px; left: 0; width: 100%; height: calc(100% - 70px);
+            position: absolute; top: 70px; left: 0; width: 100%; height: calc(100% - 140px);
             background: rgba(0,0,0,0.8); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50;
         }
-        #goButton { padding: 15px 40px; font-size: 24px; background: #00d2ff; border: none; border-radius: 50px; color: white; font-weight: bold; box-shadow: 0 5px #0097a7; }
+        #goButton { padding: 15px 40px; font-size: 24px; background: #00d2ff; border: none; border-radius: 50px; color: white; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="ad-wrapper">
-        <p>SPONSOR</p>
-        <div id="ninja-ad-box">
-            <script src="https://adm.shinobi.jp/s/a7801f6e216c0ea8aca9613f79a40a12"></script>
+    <div id="ad-top">
+        <p class="ad-label">SPONSOR</p>
+        <div id="ad-box-1">
+            <script src="https://adm.shinobi.jp/s/2b468c2567792ebfb1c28d8649aa26c8"></script>
+        </div>
+    </div>
+
+    <div id="ad-bottom">
+        <p class="ad-label">SPONSOR</p>
+        <div id="ad-box-2">
+            <script src="https://adm.shinobi.jp/s/c916a07cd4ccf69963782f24cae6cdf4"></script>
         </div>
     </div>
 
     <div id="startScreen">
         <h1 style="color:#00d2ff;">TILE TAP</h1>
-        <p>タイミングよくタイルをタップ！</p>
+        <p>タイミングよくタップ！</p>
         <button id="goButton">START!</button>
     </div>
 
     <div id="ui">0</div>
     <canvas id="gameCanvas"></canvas>
-
-    <script>
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-        const ui = document.getElementById("ui");
-        const startScreen = document.getElementById("startScreen");
-        const goButton = document.getElementById("goButton");
-
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight - 70;
-
-        let score = 0;
-        let gameActive = false;
-        let tiles = [];
-        let speed = 4;
-        const lineY = canvas.height - 120;
-
-        goButton.onclick = () => {
-            startScreen.style.display = "none";
-            gameActive = true;
-            score = 0;
-            tiles = [];
-            speed = 4;
-            ui.innerText = "0";
-            spawnTile();
-            update();
-        };
-
-        function spawnTile() {
-            if(!gameActive) return;
-            tiles.push({ x: Math.random() * (canvas.width - 80), y: -100, w: 80, h: 100, hit: false });
-            let next = Math.max(250, 900 - (score * 8));
-            setTimeout(spawnTile, next);
-        }
-
-        window.addEventListener("pointerdown", (e) => {
-            if(!gameActive) return;
-            tiles.forEach(t => {
-                if(t.y + t.h > lineY - 60 && t.y < lineY + 60 && !t.hit) {
-                    t.hit = true;
-                    score++;
-                    ui.innerText = score;
-                    if(score % 5 === 0) speed += 0.3;
-                }
-            });
-        });
-
-        function update() {
-            if(!gameActive) return;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = "#00d2ff";
-            ctx.lineWidth = 4;
-            ctx.strokeRect(0, lineY, canvas.width, 2);
-
-            tiles.forEach((t, i) => {
-                t.y += speed;
-                ctx.fillStyle = t.hit ? "#333" : "#00d2ff";
-                ctx.fillRect(t.x, t.y, t.w, t.h);
-                if(t.y > lineY + 60 && !t.hit) {
-                    gameActive = false;
-                    alert("GAME OVER! Score: " + score);
-                    location.reload();
-                }
-                if(t.y > canvas.height) tiles.splice(i, 1);
-            });
-            requestAnimationFrame(update);
-        }
-
-        // --- 30秒ごとに広告を切り替える ---
-        setInterval(() => {
-            const adBox = document.getElementById("ninja-ad-box");
-            if (adBox) {
-                const currentTag = adBox.innerHTML;
-                adBox.innerHTML = ""; // 一旦空にする
-                // わずかな遅延を入れて再セットすることで確実にリロードさせる
-                setTimeout(() => {
-                    adBox.innerHTML = currentTag;
-                    console.log("30秒経過：広告をリフレッシュしました");
-                }, 100);
-            }
-        }, 30000); // 30,000ms = 30s
-    </script>
-</body>
-</html>
