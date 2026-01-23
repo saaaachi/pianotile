@@ -5,92 +5,126 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>W-Ad Tile Tap</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #111; font-family: sans-serif; }
+        body { margin: 0; overflow: hidden; background: #111; font-family: sans-serif; touch-action: none; }
         
-        /* 広告エリア：pointer-events: none で下のボタンを押せるようにする */
-        #ad-top { position: fixed; top: 0; left: 0; width: 100%; height: 70px; background: rgba(51,51,51,0.5); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
-        #ad-bottom { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: rgba(51,51,51,0.5); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+        /* 広告エリア：高さを150pxに設定（中サイズ対応） */
+        #ad-top, #ad-bottom { 
+            position: fixed; left: 0; width: 100%; height: 150px; 
+            background: #333; z-index: 100; display: flex; align-items: center; justify-content: center; 
+        }
+        #ad-top { top: 0; }
+        #ad-bottom { bottom: 0; }
         
-        /* 広告の中身だけはクリックできるようにする */
-        #ad-box-1, #ad-box-2 { pointer-events: auto; }
+        iframe { border: none; width: 100%; height: 150px; }
         
-        .ad-label { color: #888; font-size: 8px; margin: 0; position: absolute; top: 2px; }
+        /* キャンバス：広告枠の間（150px下から）に配置 */
+        canvas { display: block; margin-top: 150px; background: #222; }
         
-        canvas { display: block; margin-top: 70px; background: #222; }
-        #ui { position: absolute; top: 80px; left: 0; width: 100%; text-align: center; color: white; font-size: 30px; font-weight: bold; pointer-events: none; }
+        #ui { position: absolute; top: 160px; left: 0; width: 100%; text-align: center; color: white; font-size: 30px; font-weight: bold; pointer-events: none; text-shadow: 2px 2px 4px #000; }
         
         #startScreen {
-            position: absolute; top: 70px; left: 0; width: 100%; height: calc(100% - 140px);
+            position: absolute; top: 150px; left: 0; width: 100%; height: calc(100vh - 300px);
             background: rgba(0,0,0,0.8); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50;
         }
         #goButton { padding: 15px 40px; font-size: 24px; background: #00d2ff; border: none; border-radius: 50px; color: white; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div id="ad-top">
-        <p class="ad-label">SPONSOR</p>
-        <div id="ad-box-1"><script src="https://adm.shinobi.jp/s/2b468c2567792ebfb1c28d8649aa26c8"></script></div>
-    </div>
-    <div id="ad-bottom">
-        <p class="ad-label">SPONSOR</p>
-        <div id="ad-box-2"><script src="https://adm.shinobi.jp/s/c916a07cd4ccf69963782f24cae6cdf4"></script></div>
-    </div>
+    <div id="ad-top"><iframe id="frame-top" src="ad.html"></iframe></div>
+    <div id="ad-bottom"><iframe id="frame-bottom" src="ad.html"></iframe></div>
+
     <div id="startScreen">
         <h1 style="color:#00d2ff;">TILE TAP</h1>
+        <p>ラインに重なる瞬間にタップ！</p>
         <button id="goButton">START!</button>
     </div>
+
     <div id="ui">0</div>
     <canvas id="gameCanvas"></canvas>
+
     <script>
-        // ... (以下、ゲームのロジックと30秒更新処理は同じです)
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
         const ui = document.getElementById("ui");
         const startScreen = document.getElementById("startScreen");
         const goButton = document.getElementById("goButton");
+
+        // キャンバスサイズ設定（上下150pxずつ引く）
         canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight - 140;
+        canvas.height = window.innerHeight - 300;
+
         let score = 0, gameActive = false, tiles = [], speed = 4;
+        
+        // 判定ラインの位置（キャンバスの底から80px上）
         const lineY = canvas.height - 80;
+
         goButton.onclick = () => {
             startScreen.style.display = "none";
             gameActive = true;
             score = 0; tiles = []; speed = 4; ui.innerText = "0";
             spawnTile(); update();
         };
+
         function spawnTile() {
             if(!gameActive) return;
             tiles.push({ x: Math.random() * (canvas.width - 80), y: -100, w: 80, h: 100, hit: false });
             setTimeout(spawnTile, Math.max(250, 900 - (score * 8)));
         }
+
         window.addEventListener("pointerdown", (e) => {
             if(!gameActive) return;
+            // タイルのどこを触っても判定する（音ゲー風）
             tiles.forEach(t => {
+                // ライン付近にある未タップのタイルを探す
                 if(t.y + t.h > lineY - 60 && t.y < lineY + 60 && !t.hit) {
-                    t.hit = true; score++; ui.innerText = score;
+                    t.hit = true; 
+                    score++; 
+                    ui.innerText = score;
                     if(score % 5 === 0) speed += 0.3;
                 }
             });
         });
+
         function update() {
             if(!gameActive) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = "#00d2ff"; ctx.lineWidth = 4; ctx.strokeRect(0, lineY, canvas.width, 2);
+
+            // 判定ラインの描画
+            ctx.strokeStyle = "#00d2ff"; 
+            ctx.lineWidth = 4; 
+            ctx.beginPath();
+            ctx.moveTo(0, lineY);
+            ctx.lineTo(canvas.width, lineY);
+            ctx.stroke();
+
             tiles.forEach((t, i) => {
                 t.y += speed;
                 ctx.fillStyle = t.hit ? "#333" : "#00d2ff";
                 ctx.fillRect(t.x, t.y, t.w, t.h);
-                if(t.y > lineY + 60 && !t.hit) { gameActive = false; alert("GAME OVER! Score: " + score); location.reload(); }
+
+                // 見逃し判定（ラインを超えてしまった場合）
+                if(t.y > lineY + 40 && !t.hit) { 
+                    gameActive = false; 
+                    alert("GAME OVER! Score: " + score); 
+                    location.reload(); 
+                }
+
+                // 画面外に消えたら配列から削除
                 if(t.y > canvas.height) tiles.splice(i, 1);
             });
             requestAnimationFrame(update);
         }
+
+        // 🚀 30秒ごとにad.htmlを強制転生
         setInterval(() => {
-            ["ad-box-1", "ad-box-2"].forEach(id => {
-                const box = document.getElementById(id);
-                if (box) { const tag = box.innerHTML; box.innerHTML = ""; setTimeout(() => { box.innerHTML = tag; }, 100); }
+            ["frame-top", "frame-bottom"].forEach(id => {
+                const f = document.getElementById(id);
+                if(f) {
+                    const s = f.src; f.src = "about:blank";
+                    setTimeout(() => f.src = s, 100);
+                }
             });
-        }, 20010);
+        }, 28000);
     </script>
 </body>
 </html>
