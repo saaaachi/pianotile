@@ -7,7 +7,6 @@
     <style>
         body { margin: 0; overflow: hidden; background: #111; font-family: sans-serif; touch-action: none; }
         
-        /* 広告エリア：高さを150pxに設定（中サイズ対応） */
         #ad-top, #ad-bottom { 
             position: fixed; left: 0; width: 100%; height: 150px; 
             background: #333; z-index: 100; display: flex; align-items: center; justify-content: center; 
@@ -17,52 +16,62 @@
         
         iframe { border: none; width: 100%; height: 150px; }
         
-        /* キャンバス：広告枠の間（150px下から）に配置 */
         canvas { display: block; margin-top: 150px; background: #222; }
         
-        #ui { position: absolute; top: 160px; left: 0; width: 100%; text-align: center; color: white; font-size: 30px; font-weight: bold; pointer-events: none; text-shadow: 2px 2px 4px #000; }
+        #ui { position: absolute; top: 160px; left: 0; width: 100%; text-align: center; color: white; font-size: 30px; font-weight: bold; pointer-events: none; text-shadow: 2px 2px 4px #000; z-index: 10; }
         
-        #startScreen {
+        /* 共通メニュー画面（スタート＆リザルト） */
+        #menuScreen {
             position: absolute; top: 150px; left: 0; width: 100%; height: calc(100vh - 300px);
-            background: rgba(0,0,0,0.8); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50;
+            background: rgba(0,0,0,0.85); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50;
         }
-        #goButton { padding: 15px 40px; font-size: 24px; background: #00d2ff; border: none; border-radius: 50px; color: white; font-weight: bold; cursor: pointer; }
+
+        .menu-btn { 
+            padding: 15px 40px; font-size: 20px; border: none; border-radius: 50px; 
+            color: white; font-weight: bold; cursor: pointer; text-decoration: none; 
+            display: inline-block; margin: 10px; text-align: center;
+        }
+        #goButton { background: #00d2ff; box-shadow: 0 4px #008eb3; }
+        .link-btn { background: #ff4081; box-shadow: 0 4px #c2185b; font-size: 18px; }
     </style>
 </head>
 <body>
     <div id="ad-top"><iframe id="frame-top" src="ad.html"></iframe></div>
     <div id="ad-bottom"><iframe id="frame-bottom" src="ad.html"></iframe></div>
 
-    <div id="startScreen">
-        <h1 style="color:#00d2ff;">TILE TAP</h1>
-        <p>ラインに重なる瞬間にタップ！</p>
-        <button id="goButton">START!</button>
+    <div id="ui">0</div>
+
+    <div id="menuScreen">
+        <h1 id="menuTitle" style="color:#00d2ff; margin-bottom:10px;">TILE TAP</h1>
+        <p id="menuMsg" style="margin-bottom:20px;">ラインに重なる瞬間にタップ！</p>
+        
+        <button id="goButton" class="menu-btn">START!</button>
+        <a href="https://saaaachi.github.io/hansya/" class="menu-btn link-btn">他のゲームはこちら</a>
     </div>
 
-    <div id="ui">0</div>
     <canvas id="gameCanvas"></canvas>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
         const ui = document.getElementById("ui");
-        const startScreen = document.getElementById("startScreen");
+        const menuScreen = document.getElementById("menuScreen");
+        const menuTitle = document.getElementById("menuTitle");
+        const menuMsg = document.getElementById("menuMsg");
         const goButton = document.getElementById("goButton");
 
-        // キャンバスサイズ設定（上下150pxずつ引く）
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight - 300;
 
         let score = 0, gameActive = false, tiles = [], speed = 4;
-        
-        // 判定ラインの位置（キャンバスの底から80px上）
         const lineY = canvas.height - 80;
 
         goButton.onclick = () => {
-            startScreen.style.display = "none";
+            menuScreen.style.display = "none";
             gameActive = true;
             score = 0; tiles = []; speed = 4; ui.innerText = "0";
-            spawnTile(); update();
+            spawnTile(); 
+            requestAnimationFrame(update);
         };
 
         function spawnTile() {
@@ -73,9 +82,7 @@
 
         window.addEventListener("pointerdown", (e) => {
             if(!gameActive) return;
-            // タイルのどこを触っても判定する（音ゲー風）
             tiles.forEach(t => {
-                // ライン付近にある未タップのタイルを探す
                 if(t.y + t.h > lineY - 60 && t.y < lineY + 60 && !t.hit) {
                     t.hit = true; 
                     score++; 
@@ -89,7 +96,7 @@
             if(!gameActive) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 判定ラインの描画
+            // 判定ライン
             ctx.strokeStyle = "#00d2ff"; 
             ctx.lineWidth = 4; 
             ctx.beginPath();
@@ -97,25 +104,31 @@
             ctx.lineTo(canvas.width, lineY);
             ctx.stroke();
 
-            tiles.forEach((t, i) => {
+            for(let i = tiles.length - 1; i >= 0; i--) {
+                let t = tiles[i];
                 t.y += speed;
                 ctx.fillStyle = t.hit ? "#333" : "#00d2ff";
                 ctx.fillRect(t.x, t.y, t.w, t.h);
 
-                // 見逃し判定（ラインを超えてしまった場合）
                 if(t.y > lineY + 40 && !t.hit) { 
-                    gameActive = false; 
-                    alert("GAME OVER! Score: " + score); 
-                    location.reload(); 
+                    gameOver();
+                    return; 
                 }
 
-                // 画面外に消えたら配列から削除
                 if(t.y > canvas.height) tiles.splice(i, 1);
-            });
+            }
             requestAnimationFrame(update);
         }
 
-        // 🚀 30秒ごとにad.htmlを強制転生
+        function gameOver() {
+            gameActive = false;
+            menuTitle.innerText = "GAME OVER";
+            menuTitle.style.color = "#ff4081";
+            menuMsg.innerText = "SCORE: " + score;
+            goButton.innerText = "RETRY";
+            menuScreen.style.display = "flex";
+        }
+
         setInterval(() => {
             ["frame-top", "frame-bottom"].forEach(id => {
                 const f = document.getElementById(id);
