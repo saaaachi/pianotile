@@ -8,7 +8,7 @@
         body { margin: 0; height: 100vh; display: flex; flex-direction: column; background: #111; font-family: sans-serif; overflow: hidden; touch-action: none; position: fixed; width: 100%; }
         
         /* 上下の広告枠 */
-        #ad-top, #ad-bottom { width: 100%; height: 100px; background: #333; display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 100; }
+        #ad-top, #ad-bottom { width: 100%; height: 100px; background: #000; display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 100; }
         iframe { border: none; width: 100%; height: 100%; }
         
         /* ゲームエリア */
@@ -16,13 +16,24 @@
         canvas { display: block; width: 100%; height: 100%; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: white; font-size: 30px; font-weight: bold; pointer-events: none; z-index: 10; }
         
-        /* メニュー画面 */
-        #menuScreen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); color: white; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; z-index: 200; padding: 20px 0; box-sizing: border-box; }
+        /* メニュー/リザルト画面 */
+        #menuScreen { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.96); color: white; display: flex; 
+            flex-direction: column; align-items: center; justify-content: flex-start; 
+            z-index: 200; padding: 30px 0; box-sizing: border-box; 
+        }
+
+        /* 収益の要：リザルト広告エリア */
+        #mid-ad-box {
+            width: 300px; height: 250px; background: #1a1a1a; margin: 20px 0;
+            display: flex; align-items: center; justify-content: center; border: 1px solid #333;
+        }
         
         /* 大広告オーバーレイ */
         #bigAdScreen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 2000;
+            background: #000; z-index: 2000;
             display: none; justify-content: center; align-items: center;
         }
         .ad-frame-wrapper { width: 90%; height: 80%; position: relative; }
@@ -33,9 +44,10 @@
             align-items: center; justify-content: center; z-index: 2100;
         }
 
-        .btn-group { display: flex; flex-direction: column; align-items: center; gap: 10px; flex-shrink: 0; }
-        .menu-btn { padding: 12px 30px; font-size: 18px; border: none; border-radius: 50px; color: white; font-weight: bold; cursor: pointer; text-decoration: none; width: 240px; text-align: center; }
+        .btn-group { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+        .menu-btn { padding: 15px 30px; font-size: 18px; border: none; border-radius: 50px; color: white; font-weight: bold; cursor: pointer; text-decoration: none; width: 240px; text-align: center; transition: 0.3s; }
         #goButton { background: #00d2ff; box-shadow: 0 4px #008eb3; }
+        #goButton:disabled { background: #444; box-shadow: 0 4px #222; color: #888; cursor: default; }
         .link-btn { background: #ff4081; box-shadow: 0 4px #c2185b; }
     </style>
 </head>
@@ -47,9 +59,17 @@
         
         <div id="menuScreen">
             <div style="text-align:center;">
-                <h2 id="menuTitle" style="color:#00d2ff; margin:0;">TILE TAP</h2>
-                <p id="menuMsg" style="margin:2px 0;">重なる瞬間にタップ！</p>
+                <h2 id="menuTitle" style="color:#00d2ff; margin:0; font-size: 32px;">TILE TAP</h2>
+                <p id="menuMsg" style="margin:5px 0; color:#aaa;">重なる瞬間にタップ！</p>
             </div>
+
+            <div id="mid-ad-box">
+                <div id="im-8b988d7b042a42d5b8df6921b628cf00">
+                    <script async src="https://imp-adedge.i-mobile.co.jp/script/v1/spot.js?20220104"></script>
+                    <script>(window.adsbyimobile=window.adsbyimobile||[]).push({pid:84561,mid:590804,asid:1924211,type:"banner",display:"inline",elementid:"im-8b988d7b042a42d5b8df6921b628cf00"})</script>
+                </div>
+            </div>
+
             <div class="btn-group" id="btnGroup">
                 <button id="goButton" class="menu-btn">START!</button>
                 <a href="https://saaaachi.github.io/" class="menu-btn link-btn">他のゲームはこちら</a>
@@ -69,22 +89,20 @@
     <div id="ad-bottom"><iframe id="ifr-bottom" src="ad.html?pos=bottom"></iframe></div>
 
     <script>
-        // --- 広告自動更新（30秒） ---
+        // --- 広告リフレッシュ ---
         setInterval(() => {
-            const topAd = document.getElementById('ifr-top');
-            const bottomAd = document.getElementById('ifr-bottom');
             const now = Date.now();
-            if(topAd) topAd.src = 'ad.html?pos=top&t=' + now;
-            if(bottomAd) bottomAd.src = 'ad.html?pos=bottom&t=' + now;
+            document.getElementById('ifr-top').src = 'ad.html?pos=top&t=' + now;
+            document.getElementById('ifr-bottom').src = 'ad.html?pos=bottom&t=' + now;
         }, 30000);
 
-        const canvas = document.getElementById("gameCanvas"), ctx = canvas.getContext("2d"), ui = document.getElementById("ui"), menuScreen = document.getElementById("menuScreen"), menuTitle = document.getElementById("menuTitle"), menuMsg = document.getElementById("menuMsg"), goButton = document.getElementById("goButton"), btnGroup = document.getElementById("btnGroup");
+        const canvas = document.getElementById("gameCanvas"), ctx = canvas.getContext("2d"), ui = document.getElementById("ui"), menuScreen = document.getElementById("menuScreen"), menuTitle = document.getElementById("menuTitle"), menuMsg = document.getElementById("menuMsg"), goButton = document.getElementById("goButton");
         
         function resize() { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
         window.addEventListener('resize', resize);
         window.onload = () => { resize(); };
 
-        let score = 0, gameActive = false, tiles = [], speed = 4, playCount = 0;
+        let score = 0, gameActive = false, tiles = [], speed = 4, playCount = 0, spawnTimeout;
 
         goButton.onclick = () => { 
             menuScreen.style.display = "none"; 
@@ -95,7 +113,7 @@
         function spawnTile() { 
             if(!gameActive) return; 
             tiles.push({ x: Math.random() * (canvas.width - 80), y: -100, w: 80, h: 100, hit: false }); 
-            setTimeout(spawnTile, Math.max(250, 900 - (score * 8))); 
+            spawnTimeout = setTimeout(spawnTile, Math.max(250, 900 - (score * 8))); 
         }
 
         window.addEventListener("pointerdown", () => { 
@@ -127,19 +145,27 @@
 
         function gameOver() {
             gameActive = false;
-            playCount++; // プレイ回数カウント
-            menuTitle.innerText = "GAME OVER"; menuTitle.style.color = "#ff4081"; 
-            menuMsg.innerText = "SCORE: " + score; goButton.innerText = "RETRY";
+            playCount++;
+            clearTimeout(spawnTimeout);
             
-            // ★ゆったり設定（3回目、以降7回おき）
+            menuTitle.innerText = "GAME OVER"; menuTitle.style.color = "#ff4081"; 
+            menuMsg.innerText = "SCORE: " + score; 
+            
+            // ボタンのディレイ
+            goButton.innerText = "お待ちください...";
+            goButton.disabled = true;
+            
             if (playCount === 3 || (playCount > 3 && (playCount - 3) % 7 === 0)) {
                 showBigAd();
             } else {
                 menuScreen.style.display = "flex";
+                setTimeout(() => {
+                    goButton.disabled = false;
+                    goButton.innerText = "RETRY";
+                }, 1500);
             }
         }
 
-        // --- 大広告システム ---
         function showBigAd() {
             const screen = document.getElementById("bigAdScreen");
             const closeBtn = document.getElementById("ad-close-btn");
@@ -154,6 +180,10 @@
             document.getElementById("bigAdScreen").style.display = "none";
             document.getElementById("ad-large-frame").src = "";
             menuScreen.style.display = "flex";
+            setTimeout(() => {
+                goButton.disabled = false;
+                goButton.innerText = "RETRY";
+            }, 500);
         }
     </script>
 </body>
